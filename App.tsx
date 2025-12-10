@@ -6,6 +6,7 @@ import Converter from './pages/Converter';
 import AboutMe from './pages/About';
 import Documentation from './pages/Documentation';
 import Contact from './pages/Contact';
+import Admin from './pages/Admin';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import CookiePolicy from './pages/CookiePolicy';
@@ -30,6 +31,7 @@ const App: React.FC = () => {
           <Route path="/documentation" element={<Documentation />} />
           <Route path="/about" element={<AboutMe />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/cookies" element={<CookiePolicy />} />

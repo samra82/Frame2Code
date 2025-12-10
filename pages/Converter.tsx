@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, X, FileCode, Play, Download, ArrowUp, ArrowDown, Settings, Eye, Globe } from 'lucide-react';
+import { Upload, X, FileCode, Play, Download, ArrowUp, ArrowDown, Settings, Eye, Globe, Wand2, Zap, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../components/Button';
 import LoadingScreen from '../components/LoadingScreen';
@@ -14,6 +14,12 @@ const Converter: React.FC = () => {
   const [selectedFileContent, setSelectedFileContent] = useState<GeneratedFile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  
+  // Refinement States
+  const [refinementPrompt, setRefinementPrompt] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
+  const [refinementMessage, setRefinementMessage] = useState('');
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // File Upload Handler
@@ -74,6 +80,33 @@ const Converter: React.FC = () => {
     }
   };
 
+  const handleRefine = async (instruction: string, loadingMsg: string) => {
+    if (generatedFiles.length === 0) return;
+    
+    setError(null);
+    setIsRefining(true);
+    setRefinementMessage(loadingMsg);
+
+    try {
+      const refinedFiles = await GeminiService.refineAppCode(generatedFiles, instruction);
+      setGeneratedFiles(refinedFiles);
+      
+      // Update selected file if it was modified
+      if (selectedFileContent) {
+        const updatedSelected = refinedFiles.find(f => f.path === selectedFileContent.path);
+        if (updatedSelected) {
+          setSelectedFileContent(updatedSelected);
+        }
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError("Failed to refine code: " + err.message);
+    } finally {
+      setIsRefining(false);
+      setRefinementPrompt('');
+    }
+  };
+
   const handleDownload = async () => {
     const zipBlob = await createZip(generatedFiles);
     const url = URL.createObjectURL(zipBlob);
@@ -106,7 +139,7 @@ const Converter: React.FC = () => {
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-200 p-4 rounded-xl mb-8 flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={() => { setError(null); setState(AppState.IDLE); }}><X className="w-5 h-5" /></button>
+          <button onClick={() => { setError(null); if(state === AppState.ERROR) setState(AppState.IDLE); }}><X className="w-5 h-5" /></button>
         </div>
       )}
 
@@ -216,8 +249,8 @@ const Converter: React.FC = () => {
           </motion.div>
         )}
 
-        {/* STATE: GENERATING */}
-        {state === AppState.GENERATING && (
+        {/* STATE: GENERATING (First Pass) */}
+        {state === AppState.GENERATING && !isRefining && (
           <motion.div
             key="loading"
             initial={{ opacity: 0 }}
@@ -228,28 +261,62 @@ const Converter: React.FC = () => {
           </motion.div>
         )}
 
+        {/* STATE: REFINING (Second Pass) */}
+        {isRefining && (
+           <motion.div
+            key="refining"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <LoadingScreen message={refinementMessage} />
+          </motion.div>
+        )}
+
         {/* STATE: COMPLETE */}
-        {state === AppState.COMPLETE && (
+        {state === AppState.COMPLETE && !isRefining && (
           <motion.div
             key="complete"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col h-[70vh]"
+            className="flex flex-col h-[75vh]"
           >
-            <div className="flex gap-4 mb-6">
-              <Button onClick={() => { setState(AppState.IDLE); setFiles([]); setGeneratedFiles([]); }} variant="secondary">
-                Start Over
-              </Button>
-              <Button onClick={handleDownload} icon={<Download className="w-4 h-4" />}>
-                Download Project
-              </Button>
+            <div className="flex flex-col md:flex-row gap-4 mb-6 justify-between items-start md:items-center">
+              <div className="flex gap-4">
+                <Button onClick={() => { setState(AppState.IDLE); setFiles([]); setGeneratedFiles([]); }} variant="secondary">
+                  Start Over
+                </Button>
+                <Button onClick={handleDownload} icon={<Download className="w-4 h-4" />}>
+                  Download Project
+                </Button>
+              </div>
+
+               {/* Quick Refinement Actions */}
+              <div className="flex items-center gap-2 bg-dark-800/50 p-1.5 rounded-xl border border-white/5">
+                 <button
+                    onClick={() => handleRefine("Add smooth Framer Motion entrance animations to the main container, cards, and list items. Use simple fade-in and slide-up variants. Ensure 'use client' is added.", "Adding animations...")}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                   <Wand2 className="w-4 h-4 text-purple-400" />
+                   Add Animations
+                 </button>
+                 <div className="w-px h-6 bg-white/10 mx-1" />
+                 <button
+                    onClick={() => handleRefine("Make the app functional. 1) Convert static data to React state using useState. 2) Implement simple handle functions for buttons. 3) Add proper 'next/link' navigation. 4) If there are forms, add onSubmit handlers that alert/log the data.", "Wiring up logic...")}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                   <Zap className="w-4 h-4 text-yellow-400" />
+                   Make Functional
+                 </button>
+              </div>
             </div>
 
-            <div className="flex-grow grid grid-cols-12 gap-6 min-h-0 bg-dark-800/30 border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+            <div className="flex-grow grid grid-cols-12 gap-6 min-h-0 bg-dark-800/30 border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative">
+              
               {/* Sidebar File Explorer */}
-              <div className="col-span-3 bg-dark-900/50 border-r border-white/5 p-4 overflow-y-auto">
+              <div className="col-span-3 bg-dark-900/50 border-r border-white/5 p-4 overflow-y-auto flex flex-col">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 px-2">Generated Files</h3>
-                <div className="space-y-1">
+                <div className="space-y-1 flex-grow">
                   {generatedFiles.map((file) => (
                     <button
                       key={file.path}
@@ -265,6 +332,31 @@ const Converter: React.FC = () => {
                     </button>
                   ))}
                 </div>
+
+                {/* Custom Instruction Box */}
+                <div className="mt-4 pt-4 border-t border-white/5">
+                   <div className="relative">
+                     <input 
+                        type="text" 
+                        value={refinementPrompt}
+                        onChange={(e) => setRefinementPrompt(e.target.value)}
+                        placeholder="e.g. Change primary color to red..."
+                        className="w-full bg-dark-800 border border-white/10 rounded-lg pl-3 pr-10 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-primary transition-colors"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && refinementPrompt.trim()) {
+                            handleRefine(refinementPrompt, "Refining code...");
+                          }
+                        }}
+                     />
+                     <button 
+                      disabled={!refinementPrompt.trim()}
+                      onClick={() => handleRefine(refinementPrompt, "Refining code...")}
+                      className="absolute right-1 top-1 p-1 hover:bg-white/10 rounded text-slate-400 hover:text-white disabled:opacity-30"
+                     >
+                        <MessageSquare className="w-4 h-4" />
+                     </button>
+                   </div>
+                </div>
               </div>
 
               {/* Code Viewer / Previewer */}
@@ -274,7 +366,7 @@ const Converter: React.FC = () => {
                     <div className="w-full h-full bg-white flex flex-col">
                       <div className="bg-slate-100 border-b border-slate-200 px-4 py-2 text-xs text-slate-500 flex justify-between items-center">
                         <span>Live Preview (Static HTML)</span>
-                        <span className="text-amber-600">Interactvity may be limited</span>
+                        <span className="text-amber-600">Interactivity may be limited in static preview</span>
                       </div>
                       <iframe 
                         srcDoc={selectedFileContent.content}

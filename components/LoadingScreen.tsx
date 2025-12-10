@@ -2,9 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Code, Cpu, Layers } from 'lucide-react';
 
-const LoadingScreen: React.FC = () => {
+interface LoadingScreenProps {
+  message?: string;
+}
+
+const LoadingScreen: React.FC<LoadingScreenProps> = ({ message }) => {
   const [step, setStep] = useState(0);
-  const messages = [
+  const defaultMessages = [
     "Analyzing visual hierarchy...",
     "Dreaming in React components...",
     "Refining Tailwind classes...",
@@ -12,15 +16,18 @@ const LoadingScreen: React.FC = () => {
     "Almost there..."
   ];
 
+  const messages = message ? [message] : defaultMessages;
+
   useEffect(() => {
+    if (message) return; // Don't cycle if static message provided
     const interval = setInterval(() => {
       setStep((prev) => (prev + 1) % messages.length);
     }, 2500);
     return () => clearInterval(interval);
-  }, []);
+  }, [message, messages.length]);
 
   return (
-    <div className="w-full h-[60vh] flex flex-col items-center justify-center relative overflow-hidden rounded-3xl bg-dark-800/50 border border-white/5 p-10">
+    <div className="w-full h-[60vh] flex flex-col items-center justify-center relative overflow-hidden rounded-3xl bg-dark-800/50 border border-white/5 p-10 pt-2">
       <div className="relative">
         {/* Central pulsing core */}
         <motion.div 
@@ -58,7 +65,7 @@ const LoadingScreen: React.FC = () => {
         className="mt-12 text-center"
       >
         <h3 className="text-2xl font-display font-bold text-white mb-2">{messages[step]}</h3>
-        <p className="text-slate-400">Gemini 3 Pro is crafting your code.</p>
+        <p className="text-slate-400"> crafting your code</p>
       </motion.div>
       
       <div className="mt-8 w-64 h-1.5 bg-dark-700 rounded-full overflow-hidden">

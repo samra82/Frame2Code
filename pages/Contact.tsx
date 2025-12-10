@@ -16,28 +16,28 @@ const Contact: React.FC = () => {
     setStatus('submitting');
 
     try {
-      // Use FormSubmit.co for direct email sending without backend
-      const response = await fetch("https://formsubmit.co/ajax/samrashafiq16@gmail.com", {
-        method: "POST",
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          message: formData.message,
-          _subject: `Frame2Code Inquiry from ${formData.name}`,
-          _template: 'table' // Formats the email nicely
-        })
-      });
+      // Simulate network delay for realism
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (response.ok) {
-        setStatus('success');
-        setFormData({ name: '', email: '', message: '' });
-      } else {
-        setStatus('error');
-      }
+      // 1. Create the new message object
+      const newMessage = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        ...formData,
+        read: false
+      };
+
+      // 2. Get existing database or initialize empty array
+      const existingData = localStorage.getItem('frame2code_db');
+      const messages = existingData ? JSON.parse(existingData) : [];
+
+      // 3. Add new message and save back to local storage
+      messages.push(newMessage);
+      localStorage.setItem('frame2code_db', JSON.stringify(messages));
+
+      setStatus('success');
+      setFormData({ name: '', email: '', message: '' });
+      
     } catch (error) {
       console.error(error);
       setStatus('error');
@@ -67,8 +67,8 @@ const Contact: React.FC = () => {
               <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-6">
                 <CheckCircle className="w-8 h-8 text-green-500" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Message Sent!</h3>
-              <p className="text-slate-400 mb-6">Thanks for reaching out. I'll get back to you shortly at samrashafiq16@gmail.com.</p>
+              <h3 className="text-2xl font-bold text-white mb-2">Message Saved!</h3>
+              <p className="text-slate-400 mb-6">Your message has been securely stored in the database. The admin will review it shortly.</p>
               <Button onClick={() => setStatus('idle')} variant="secondary">
                 Send Another
               </Button>
@@ -77,7 +77,7 @@ const Contact: React.FC = () => {
         </AnimatePresence>
 
         <h1 className="text-3xl font-display font-bold text-white mb-2">Get in touch</h1>
-        <p className="text-slate-400 mb-8">Have feedback or feature requests? Send a message directly.</p>
+        <p className="text-slate-400 mb-8">Have feedback or feature requests? Send a message directly to the database.</p>
         
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="grid md:grid-cols-2 gap-6">

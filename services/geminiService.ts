@@ -78,7 +78,7 @@ export const generateAppCode = async (files: File[]): Promise<GeneratedFile[]> =
     Do not include any markdown formatting like \`\`\`json. Return pure JSON string.
     Ensure "path" includes the full relative path from the project root.
     Include a 'README.md' explaining how to run the project.
-    Include a 'package.json' with necessary dependencies (next, react, react-dom, tailwindcss, lucide-react, clsx, tailwind-merge).
+    Include a 'package.json' with necessary dependencies (next, react, react-dom, tailwindcss, lucide-react, clsx, tailwind-merge, framer-motion).
   `;
 
   try {
@@ -100,19 +100,113 @@ export const generateAppCode = async (files: File[]): Promise<GeneratedFile[]> =
     const text = response.text;
     if (!text) throw new Error("No response from Gemini");
 
-    // Parse the JSON
-    // Sometimes models might wrap in markdown despite instructions, so we clean it just in case
     const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(cleanedText);
     
     if (parsed.files && Array.isArray(parsed.files)) {
-      return parsed.files;
+      return parsed.files as GeneratedFile[];
     } else {
       throw new Error("Invalid JSON structure returned by Gemini");
     }
 
   } catch (error) {
     console.error("Gemini Generation Error:", error);
+    throw error;
+  }
+};
+
+export const refineAppCode = async (currentFiles: GeneratedFile[], instruction: string): Promise<GeneratedFile[]> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const modelId = 'gemini-3-pro-preview';
+
+  // Contextualize the code
+  const fileContext = currentFiles.map(f => `
+--- FILE: ${f.path} ---
+${f.content}
+  `).join('\n');
+
+  const prompt = `
+    You are Frame2Code, an expert Senior Frontend Engineer.
+    
+    TASK:
+    Update the existing codebase based on the user's specific request.
+    
+    CURRENT CODE:
+    ${fileContext}
+    
+    USER REQUEST:
+    "${instruction}"
+    
+    REQUIREMENTS:
+    1. Return the FULL content of all files that need to be changed.
+    2. If a file is NOT changed, you MAY omit it from the response, but if it is critical for context, include it. 
+    3. Ensure Next.js 14 + Tailwind CSS compatibility.
+    4. If asked for animations, use 'framer-motion' (ensure 'use client' is added where hooks are used).
+    5. If asked for functionality, implement React state (useState), useEffect, and mock data handlers.
+    6. ALWAYS update 'preview.html' if the visual changes are significant, otherwise you can omit it.
+    
+    OUTPUT FORMAT:
+    Return JSON object ONLY:
+    {
+      "files": [
+        { "path": "app/page.tsx", "content": "..." }
+      ]
+    }
+    
+    Do not include any markdown formatting.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: {
+        parts: [
+          { text: prompt }
+        ]
+      },
+      config: {
+        responseMimeType: "application/json",
+        maxOutputTokens: 20000,
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from Gemini");
+
+    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanedText);
+    
+    if (parsed.files && Array.isArray(parsed.files)) {
+      // Merge logic: If AI returns a subset of files, we merge with existing.
+      // However, the function returns the array to be merged by the caller or just the result.
+      // Let's return the complete set by merging here for safety.
+      
+      const newFiles = parsed.files as GeneratedFile[];
+      const newFilesMap = new Map<string, GeneratedFile>(
+        newFiles.map((f) => [f.path, f])
+      );
+      
+      const mergedFiles = currentFiles.map(original => {
+        if (newFilesMap.has(original.path)) {
+          const newFile = newFilesMap.get(original.path);
+          newFilesMap.delete(original.path);
+          return newFile!;
+        }
+        return original;
+      });
+
+      // Add any new files that weren't in the original list
+      newFilesMap.forEach((file) => {
+        mergedFiles.push(file);
+      });
+
+      return mergedFiles;
+    } else {
+      throw new Error("Invalid JSON structure returned by Gemini");
+    }
+
+  } catch (error) {
+    console.error("Gemini Refinement Error:", error);
     throw error;
   }
 };

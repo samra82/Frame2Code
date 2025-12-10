@@ -56,7 +56,7 @@ const Home: React.FC = () => {
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </NavLink>
-              <NavLink to="/about">
+              <NavLink to="/documentation">
                 <Button variant="secondary" className="w-full sm:w-auto h-14 text-lg px-8">
                   View Documentation
                 </Button>
