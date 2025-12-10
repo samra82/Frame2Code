@@ -1,0 +1,5 @@
+{
+  "name": "Frame2Code",
+  "description": "Transform UI sketches into production-ready Next.js applications using Gemini 3 Pro.",
+  "requestFramePermissions": []
+}
