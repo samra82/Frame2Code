@@ -1,15 +1,15 @@
 import React from 'react';
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
-import Layout from './components/Layout';
-import Home from './pages/Home';
-import Converter from './pages/Converter';
-import AboutMe from './pages/About';
-import Documentation from './pages/Documentation';
-import Contact from './pages/Contact';
-import Admin from './pages/Admin';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import CookiePolicy from './pages/CookiePolicy';
+import Layout from '../components/Layout';
+import Home from './Home';
+import Converter from './Converter';
+import AboutMe from './About';
+import Documentation from './Documentation';
+import Contact from './Contact';
+import Admin from './Admin';
+import PrivacyPolicy from './PrivacyPolicy';
+import TermsOfService from './TermsOfService';
+import CookiePolicy from './CookiePolicy';
 
 // ScrollToTop helper
 const ScrollToTop = () => {
